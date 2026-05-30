@@ -953,6 +953,42 @@ textarea {
   font-family: Consolas, "Courier New", monospace;
 }
 
+.module-launch-row {
+  display: grid;
+  grid-template-columns: 90px 110px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px 13px;
+  border-bottom: 1px solid #e3e7df;
+  background: #ffffff;
+  font-size: 0.82rem;
+}
+
+.module-launch-row span {
+  color: #62706d;
+  font-weight: 700;
+}
+
+.module-launch-row strong {
+  color: #176b65;
+  font-size: 0.8rem;
+}
+
+.module-launch-row code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #394541;
+  font-family: Consolas, "Courier New", monospace;
+}
+
+.module-launch-row small {
+  grid-column: 2 / 4;
+  color: #62706d;
+  line-height: 1.45;
+}
+
 .parameter-table {
   overflow: auto;
 }

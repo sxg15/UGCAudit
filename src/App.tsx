@@ -143,6 +143,25 @@ function moduleSourceLabel(source: ModuleInfo["source"] | string) {
   return "预置自定义模块";
 }
 
+function launchTypeLabel(launchType: string) {
+  if (launchType === "http") return "HTTP";
+  if (launchType === "exe") return "EXE 传参";
+  if (launchType === "system") return "系统内置";
+  return "手动接入";
+}
+
+function launchDetail(module: ModuleInfo) {
+  const launch = module.launch;
+  if (launch.launchType === "http") {
+    return `${launch.method ?? "POST"} ${launch.url ?? "未配置 URL"}`;
+  }
+  if (launch.launchType === "exe") {
+    const args = launch.args.length > 0 ? ` ${launch.args.join(" ")}` : "";
+    return `${launch.command ?? "未配置可执行文件"}${args}`;
+  }
+  return launch.notes || "无需启动外部模块";
+}
+
 function fallbackModule(moduleId: string): ModuleInfo {
   return {
     id: moduleId,
@@ -156,6 +175,14 @@ function fallbackModule(moduleId: string): ModuleInfo {
     definitionDir: "",
     modelPath: null,
     modelConfigured: false,
+    launch: {
+      launchType: "manual",
+      command: null,
+      url: null,
+      method: null,
+      args: [],
+      notes: "模块未注册，暂无启动方式。",
+    },
     parameters: [],
   };
 }
@@ -1234,6 +1261,12 @@ export default function App() {
                   <div className="module-folder-row">
                     <span>定义文件夹</span>
                     <code>{module.definitionDir || "未生成"}</code>
+                  </div>
+                  <div className="module-launch-row">
+                    <span>启动方式</span>
+                    <strong>{launchTypeLabel(module.launch.launchType)}</strong>
+                    <code>{launchDetail(module)}</code>
+                    <small>{module.launch.notes}</small>
                   </div>
                   <div className="parameter-table">
                     <div className="parameter-table__head">

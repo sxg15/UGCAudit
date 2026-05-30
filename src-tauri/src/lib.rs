@@ -10,6 +10,36 @@ use tauri::Manager;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ModuleLaunch {
+    #[serde(default)]
+    launch_type: String,
+    #[serde(default)]
+    command: Option<String>,
+    #[serde(default)]
+    url: Option<String>,
+    #[serde(default)]
+    method: Option<String>,
+    #[serde(default)]
+    args: Vec<String>,
+    #[serde(default)]
+    notes: String,
+}
+
+impl Default for ModuleLaunch {
+    fn default() -> Self {
+        Self {
+            launch_type: "manual".to_string(),
+            command: None,
+            url: None,
+            method: None,
+            args: Vec::new(),
+            notes: String::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ModuleInfo {
     id: String,
     name: String,
@@ -23,6 +53,8 @@ pub struct ModuleInfo {
     definition_dir: String,
     model_path: Option<String>,
     model_configured: bool,
+    #[serde(default)]
+    launch: ModuleLaunch,
     parameters: Vec<ModuleParameter>,
 }
 
@@ -99,7 +131,6 @@ pub struct StepRun {
     verdict: String,
     message: String,
     execution_group: usize,
-    outputs: Value,
     report_section: String,
 }
 
@@ -127,6 +158,8 @@ pub struct RunRecord {
     assets: Vec<AuditAsset>,
     data_root: String,
     run_dir: String,
+    #[serde(default)]
+    resource_root: String,
     report_path: String,
     steps: Vec<StepRun>,
 }
@@ -247,6 +280,39 @@ fn param(
     }
 }
 
+fn system_launch(notes: &str) -> ModuleLaunch {
+    ModuleLaunch {
+        launch_type: "system".to_string(),
+        notes: notes.to_string(),
+        ..ModuleLaunch::default()
+    }
+}
+
+fn exe_launch(command: &str, notes: &str) -> ModuleLaunch {
+    ModuleLaunch {
+        launch_type: "exe".to_string(),
+        command: Some(command.to_string()),
+        args: vec![
+            "--resource-root".to_string(),
+            "{resourceRoot}".to_string(),
+            "--params".to_string(),
+            "{paramsJson}".to_string(),
+        ],
+        notes: notes.to_string(),
+        ..ModuleLaunch::default()
+    }
+}
+
+fn http_launch(url: &str, notes: &str) -> ModuleLaunch {
+    ModuleLaunch {
+        launch_type: "http".to_string(),
+        url: Some(url.to_string()),
+        method: Some("POST".to_string()),
+        notes: notes.to_string(),
+        ..ModuleLaunch::default()
+    }
+}
+
 fn module_default_config(module: &ModuleInfo) -> Value {
     let mut map = serde_json::Map::new();
     for parameter in &module.parameters {
@@ -301,6 +367,7 @@ fn builtin_module_definitions() -> Vec<ModuleInfo> {
             definition_dir: String::new(),
             model_path: None,
             model_configured: true,
+            launch: system_launch("流程入口，不启动外部模块。"),
             parameters: vec![],
         },
         ModuleInfo {
@@ -315,6 +382,7 @@ fn builtin_module_definitions() -> Vec<ModuleInfo> {
             definition_dir: String::new(),
             model_path: None,
             model_configured: true,
+            launch: system_launch("报告汇总节点，不启动外部模块。"),
             parameters: vec![],
         },
         ModuleInfo {
@@ -329,6 +397,10 @@ fn builtin_module_definitions() -> Vec<ModuleInfo> {
             definition_dir: String::new(),
             model_path: None,
             model_configured: false,
+            launch: exe_launch(
+                "paddleocr-module.exe",
+                "客户端启动本地可执行文件，只传入待审核资源根目录和用户参数 JSON。",
+            ),
             parameters: vec![
                 param("modelPath", "PaddleOCR 本地目录", "PaddleOCR 模型或运行环境所在目录。", "path", json!(""), true, vec![]),
                 param("profile", "识别模式", "mobile 速度更快，server 更适合高精度。", "select", json!("mobile"), true, vec![option("mobile", "mobile"), option("server", "server")]),
@@ -349,6 +421,10 @@ fn builtin_module_definitions() -> Vec<ModuleInfo> {
             definition_dir: String::new(),
             model_path: None,
             model_configured: false,
+            launch: exe_launch(
+                "shieldgemma2-module.exe",
+                "客户端启动本地可执行文件，只传入待审核资源根目录和用户参数 JSON。",
+            ),
             parameters: vec![
                 param("modelPath", "ShieldGemma 2 模型目录", "ShieldGemma 2 本地模型目录。", "path", json!(""), true, vec![]),
                 param("policies", "检测策略", "模块需要检测的图片风险类别。", "multiSelect", json!(["sexual", "violence_gore", "dangerous"]), true, vec![option("色情", "sexual"), option("暴力/血腥", "violence_gore"), option("危险内容", "dangerous")]),
@@ -368,9 +444,13 @@ fn builtin_module_definitions() -> Vec<ModuleInfo> {
             definition_dir: String::new(),
             model_path: None,
             model_configured: false,
+            launch: http_launch(
+                "http://127.0.0.1:8787/audit/text",
+                "客户端以 HTTP POST 调用本地服务，请求体只包含 resourceRoot 和 params。",
+            ),
             parameters: vec![
                 param("modelPath", "Qwen3Guard 模型目录", "Qwen3Guard 本地模型目录。", "path", json!(""), true, vec![]),
-                param("input", "输入来源", "文本来源字段，例如 OCR 全文。", "string", json!("$steps.image_ocr.outputs.fullText"), true, vec![]),
+                param("textPattern", "文本文件匹配", "模块在资源根目录内读取的文本文件匹配规则。", "string", json!("**/*.{txt,md,json}"), true, vec![]),
                 param("modelSize", "模型尺寸", "传给模块的模型尺寸标记。", "select", json!("0.6b"), true, vec![option("0.6B", "0.6b"), option("4B", "4b"), option("8B", "8b")]),
                 param("categories", "风险类别", "文本模块要关注的风险类别。", "multiSelect", json!(["sexual", "violence", "illegal", "privacy"]), false, vec![option("色情", "sexual"), option("暴力", "violence"), option("违法", "illegal"), option("隐私", "privacy"), option("自伤", "self_harm")]),
                 param("rejectUnsafe", "Unsafe 直接拒绝", "模型返回 Unsafe 时是否直接判为不通过。", "boolean", json!(true), false, vec![]),
@@ -389,8 +469,8 @@ fn module_definition_file(folder: &Path) -> PathBuf {
 
 fn module_readme(module: &ModuleInfo) -> String {
     format!(
-        "# {}\n\n{}\n\n- 模块 ID：{}\n- 类型：{}\n- 来源：{}\n\n这个文件夹是模块定义目录。`module.json` 描述模块参数和入口信息。\n",
-        module.name, module.summary, module.id, module.kind, module.source
+        "# {}\n\n{}\n\n- 模块 ID：{}\n- 类型：{}\n- 来源：{}\n- 启动方式：{}\n\n这个文件夹是模块定义目录。`module.json` 描述模块参数和入口信息。\n",
+        module.name, module.summary, module.id, module.kind, module.source, module.launch.launch_type
     )
 }
 
@@ -411,15 +491,11 @@ fn ensure_builtin_module_folders(root: &Path) -> Result<(), String> {
             .map_err(|error| format!("无法创建模块目录 {}: {error}", folder.display()))?;
 
         let definition_file = module_definition_file(&folder);
-        if !definition_file.exists() {
-            write_module_definition(&definition_file, &module)?;
-        }
+        write_module_definition(&definition_file, &module)?;
 
         let readme_file = folder.join("README.md");
-        if !readme_file.exists() {
-            fs::write(&readme_file, module_readme(&module))
-                .map_err(|error| format!("无法写入模块说明 {}: {error}", readme_file.display()))?;
-        }
+        fs::write(&readme_file, module_readme(&module))
+            .map_err(|error| format!("无法写入模块说明 {}: {error}", readme_file.display()))?;
     }
     Ok(())
 }
@@ -493,6 +569,11 @@ fn normalize_flow(mut flow: FlowDefinition, modules: &HashMap<String, ModuleInfo
         if let Some(module) = modules.get(&node.module_id) {
             let defaults = module_default_config(module);
             node.config = merge_config(&defaults, &node.config);
+            if module.id == "preset.custom.qwen3guard" {
+                if let Value::Object(map) = &mut node.config {
+                    map.remove("input");
+                }
+            }
         }
     }
     ensure_system_nodes(flow)
@@ -856,11 +937,6 @@ fn module_step_result(
             verdict: "pass".to_string(),
             message: message.to_string(),
             execution_group,
-            outputs: json!({
-                "moduleKind": module.kind.clone(),
-                "summary": message,
-                "params": node.config.clone()
-            }),
             report_section,
         };
     }
@@ -890,12 +966,11 @@ fn module_step_result(
     };
 
     let report_section = format!(
-        "### {}\n\n- 模块：{}\n- 模块来源：预置自定义模块\n- 结论：需要人工复审\n- 状态：{}\n- 说明：{}\n- 参数：`{}`\n",
+        "### {}\n\n- 模块：{}\n- 模块来源：预置自定义模块\n- 结论：需要人工复审\n- 状态：{}\n- 说明：{}\n",
         node.label,
         module.name,
         status_label(status),
-        message,
-        table_cell(&node.config.to_string())
+        message
     );
 
     StepRun {
@@ -907,12 +982,6 @@ fn module_step_result(
         verdict: verdict.to_string(),
         message: message.clone(),
         execution_group,
-        outputs: json!({
-            "moduleKind": module.kind.clone(),
-            "modelConfigured": status == "ready",
-            "summary": message,
-            "params": node.config.clone()
-        }),
         report_section,
     }
 }
@@ -957,6 +1026,9 @@ fn build_report(run: &RunRecord) -> String {
     report.push_str(&format!("- 流程：{}\n", run.flow_name));
     report.push_str(&format!("- 输入：{}\n", run.input_note));
     report.push_str(&format!("- 素材数量：{}\n", run.assets.len()));
+    if !run.resource_root.is_empty() {
+        report.push_str(&format!("- 资源根目录：{}\n", run.resource_root));
+    }
     report.push_str("- 模型下载：本次运行未触发任何模型下载。\n\n");
 
     report.push_str("## 输入素材\n\n");
@@ -999,6 +1071,9 @@ fn build_report(run: &RunRecord) -> String {
 
     report.push_str("## 本地文件\n\n");
     report.push_str(&format!("- 运行目录：{}\n", run.run_dir));
+    if !run.resource_root.is_empty() {
+        report.push_str(&format!("- 资源根目录：{}\n", run.resource_root));
+    }
     report.push_str(&format!("- 报告文件：{}\n", run.report_path));
     report
 }
@@ -1131,11 +1206,22 @@ fn start_run(
     let ordered_nodes = topological_order(&flow)?;
     let run_id = format!("run_{}", now_millis());
     let run_dir = root.join("runs").join(&run_id);
+    let resource_dir = run_dir.join("resources");
     let steps_dir = run_dir.join("steps");
 
     fs::create_dir_all(&steps_dir)
         .map_err(|error| format!("无法创建运行目录 {}: {error}", steps_dir.display()))?;
+    fs::create_dir_all(&resource_dir)
+        .map_err(|error| format!("无法创建资源目录 {}: {error}", resource_dir.display()))?;
     write_json(&run_dir.join("flow.snapshot.json"), &flow)?;
+    write_json(
+        &resource_dir.join("manifest.json"),
+        &json!({
+            "runId": run_id,
+            "inputNote": &input_note,
+            "assets": &assets
+        }),
+    )?;
 
     let mut steps = Vec::new();
     for (node, execution_group) in ordered_nodes {
@@ -1149,16 +1235,14 @@ fn start_run(
         write_json(
             &step_dir.join("input.json"),
             &json!({
-                "runId": run_id,
-                "stepId": node.id,
-                "moduleId": node.module_id,
-                "params": node.config,
-                "inputNote": &input_note,
-                "assets": &assets,
-                "executionGroup": execution_group
+                "resourceRoot": resource_dir.display().to_string(),
+                "params": node.config
             }),
         )?;
-        write_json(&step_dir.join("output.json"), &step)?;
+        let step_result_file = step_dir.join("result.md");
+        fs::write(&step_result_file, &step.report_section).map_err(|error| {
+            format!("无法写入步骤结果 {}: {error}", step_result_file.display())
+        })?;
         steps.push(step);
     }
 
@@ -1188,6 +1272,7 @@ fn start_run(
         assets,
         data_root: root.display().to_string(),
         run_dir: run_dir.display().to_string(),
+        resource_root: resource_dir.display().to_string(),
         report_path: report_path.display().to_string(),
         steps,
     };

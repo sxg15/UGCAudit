@@ -6,6 +6,15 @@ export type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue };
 
+export type ModuleLaunch = {
+  launchType: string;
+  command?: string | null;
+  url?: string | null;
+  method?: string | null;
+  args: string[];
+  notes: string;
+};
+
 export type ModuleInfo = {
   id: string;
   name: string;
@@ -18,6 +27,7 @@ export type ModuleInfo = {
   definitionDir: string;
   modelPath?: string | null;
   modelConfigured: boolean;
+  launch: ModuleLaunch;
   parameters: ModuleParameter[];
 };
 
@@ -83,7 +93,6 @@ export type StepRun = {
   verdict: string;
   message: string;
   executionGroup: number;
-  outputs: JsonValue;
   reportSection: string;
 };
 
@@ -98,6 +107,7 @@ export type RunRecord = {
   assets: AuditAsset[];
   dataRoot: string;
   runDir: string;
+  resourceRoot: string;
   reportPath: string;
   steps: StepRun[];
 };

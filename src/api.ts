@@ -42,6 +42,25 @@ function param(
   return { key, name, description, parameterType, defaultValue, required, options };
 }
 
+function systemLaunch(notes: string): ModuleInfo["launch"] {
+  return { launchType: "system", command: null, url: null, method: null, args: [], notes };
+}
+
+function exeLaunch(command: string, notes: string): ModuleInfo["launch"] {
+  return {
+    launchType: "exe",
+    command,
+    url: null,
+    method: null,
+    args: ["--resource-root", "{resourceRoot}", "--params", "{paramsJson}"],
+    notes,
+  };
+}
+
+function httpLaunch(url: string, notes: string): ModuleInfo["launch"] {
+  return { launchType: "http", command: null, url, method: "POST", args: [], notes };
+}
+
 const moduleSpecs: ModuleInfo[] = [
   {
     id: START_MODULE_ID,
@@ -55,6 +74,7 @@ const moduleSpecs: ModuleInfo[] = [
     definitionDir: "浏览器预览模式",
     modelPath: null,
     modelConfigured: true,
+    launch: systemLaunch("流程入口，不启动外部模块。"),
     parameters: [],
   },
   {
@@ -69,6 +89,7 @@ const moduleSpecs: ModuleInfo[] = [
     definitionDir: "浏览器预览模式",
     modelPath: null,
     modelConfigured: true,
+    launch: systemLaunch("报告汇总节点，不启动外部模块。"),
     parameters: [],
   },
   {
@@ -83,6 +104,10 @@ const moduleSpecs: ModuleInfo[] = [
     definitionDir: "浏览器预览模式",
     modelPath: null,
     modelConfigured: false,
+    launch: exeLaunch(
+      "paddleocr-module.exe",
+      "客户端启动本地可执行文件，只传入待审核资源根目录和用户参数 JSON。",
+    ),
     parameters: [
       param("modelPath", "PaddleOCR 本地目录", "PaddleOCR 模型或运行环境所在目录。", "path", "", true),
       param("profile", "识别模式", "mobile 速度更快，server 更适合高精度。", "select", "mobile", true, [
@@ -110,6 +135,10 @@ const moduleSpecs: ModuleInfo[] = [
     definitionDir: "浏览器预览模式",
     modelPath: null,
     modelConfigured: false,
+    launch: exeLaunch(
+      "shieldgemma2-module.exe",
+      "客户端启动本地可执行文件，只传入待审核资源根目录和用户参数 JSON。",
+    ),
     parameters: [
       param("modelPath", "ShieldGemma 2 模型目录", "ShieldGemma 2 本地模型目录。", "path", "", true),
       param("policies", "检测策略", "模块需要检测的图片风险类别。", "multiSelect", [
@@ -137,9 +166,13 @@ const moduleSpecs: ModuleInfo[] = [
     definitionDir: "浏览器预览模式",
     modelPath: null,
     modelConfigured: false,
+    launch: httpLaunch(
+      "http://127.0.0.1:8787/audit/text",
+      "客户端以 HTTP POST 调用本地服务，请求体只包含 resourceRoot 和 params。",
+    ),
     parameters: [
       param("modelPath", "Qwen3Guard 模型目录", "Qwen3Guard 本地模型目录。", "path", "", true),
-      param("input", "输入来源", "文本来源字段，例如 OCR 全文。", "string", "$steps.image_ocr.outputs.fullText", true),
+      param("textPattern", "文本文件匹配", "模块在资源根目录内读取的文本文件匹配规则。", "string", "**/*.{txt,md,json}", true),
       param("modelSize", "模型尺寸", "传给模块的模型尺寸标记。", "select", "0.6b", true, [
         option("0.6B", "0.6b"),
         option("4B", "4b"),
@@ -175,15 +208,19 @@ function normalizeFlow(flow: FlowDefinition): FlowDefinition {
       const moduleId = legacyModuleIds[node.moduleId] ?? node.moduleId;
       const module = moduleSpecs.find((item) => item.id === moduleId);
       const defaults = module ? defaultConfigForModule(module) : {};
+      const config = {
+        ...defaults,
+        ...(typeof node.config === "object" && node.config && !Array.isArray(node.config)
+          ? node.config
+          : {}),
+      };
+      if (moduleId === "preset.custom.qwen3guard") {
+        delete config.input;
+      }
       return {
         ...node,
         moduleId,
-        config: {
-          ...defaults,
-          ...(typeof node.config === "object" && node.config && !Array.isArray(node.config)
-            ? node.config
-            : {}),
-        },
+        config,
       };
     }),
   };
@@ -397,6 +434,7 @@ function mockReport(run: RunRecord) {
 - 流程：${run.flowName}
 - 输入：${run.inputNote || "未填写输入说明"}
 - 素材数量：${run.assets.length}
+- 资源根目录：${run.resourceRoot}
 - 模型下载：本次运行未触发任何模型下载。
 
 ## 输入素材
@@ -421,19 +459,13 @@ ${rows}
 ## 模块结论
 
 ${run.steps
-  .map(
-    (step) => `### ${step.label}
-
-- 模块：${step.moduleName}
-- 模块来源：预置自定义模块
-- 参数：\`${JSON.stringify(step.outputs)}\`
-`,
-  )
+  .map((step) => step.reportSection)
   .join("\n")}
 
 ## 本地文件
 
 - 运行目录：${run.runDir}
+- 资源根目录：${run.resourceRoot}
 - 报告文件：${run.reportPath}
 `;
 }
@@ -531,6 +563,7 @@ export async function startRun(
 
   const modules = moduleSpecs;
   const runId = `run_${Date.now()}`;
+  const resourceRoot = `local-preview/runs/${runId}/resources`;
   const steps = normalized.nodes.map((node, index) => {
     const module = modules.find((item) => item.id === node.moduleId) ?? modules[0];
     if (module.source === "system") {
@@ -547,8 +580,14 @@ export async function startRun(
         verdict: "pass",
         message,
         executionGroup: index,
-        outputs: { summary: message, params: node.config },
-        reportSection: "",
+        reportSection: `### ${node.label}
+
+- 模块：${module.name}
+- 模块来源：流程系统节点
+- 结论：通过
+- 状态：系统节点
+- 说明：${message}
+`,
       };
     }
     const status = moduleConfigured(node.config) ? "ready" : "needs_model";
@@ -570,8 +609,14 @@ export async function startRun(
       verdict: "review",
       message,
       executionGroup: index,
-      outputs: { summary: message, params: node.config },
-      reportSection: "",
+      reportSection: `### ${node.label}
+
+- 模块：${module.name}
+- 模块来源：预置自定义模块
+- 结论：需要人工复审
+- 状态：${mockStatusLabel(status)}
+- 说明：${message}
+`,
     };
   });
   const run: RunRecord = {
@@ -585,6 +630,7 @@ export async function startRun(
     assets,
     dataRoot: "浏览器预览模式",
     runDir: `local-preview/runs/${runId}`,
+    resourceRoot,
     reportPath: `local-preview/runs/${runId}/report.md`,
     steps,
   };
