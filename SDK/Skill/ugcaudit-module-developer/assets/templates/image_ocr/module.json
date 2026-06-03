@@ -1,0 +1,18 @@
+{
+  "id": "{{MODULE_ID}}",
+  "name": "{{MODULE_NAME}}",
+  "kind": "image_ocr",
+  "summary": "读取图片集合，并输出示例 OCR 文本。",
+  "modelLabel": "无需模型",
+  "icon": "scan-text",
+  "modelConfigured": true,
+  "launch": {
+    "launchType": "python",
+    "command": "main.py",
+    "args": ["--input", "{inputJson}", "--output", "{outputJson}"],
+    "notes": "读取图片集合并输出 OCR 文本。"
+  },
+  "parameters": [],
+  "dataOutputs": []
+}
+

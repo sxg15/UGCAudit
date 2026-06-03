@@ -1,0 +1,5 @@
+interface:
+  display_name: "UGCAudit Module Developer"
+  short_description: "创建、检查、试跑并验收 UGCAudit 自定义审核模块"
+  default_prompt: "Use $ugcaudit-module-developer to create and validate a UGCAudit audit module."
+

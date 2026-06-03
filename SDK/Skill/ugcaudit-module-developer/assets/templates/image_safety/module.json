@@ -1,0 +1,28 @@
+{
+  "id": "{{MODULE_ID}}",
+  "name": "{{MODULE_NAME}}",
+  "kind": "image_safety",
+  "summary": "读取图片集合，并按文件名示例规则标记风险图片。",
+  "modelLabel": "无需模型",
+  "icon": "shield-alert",
+  "modelConfigured": true,
+  "launch": {
+    "launchType": "python",
+    "command": "main.py",
+    "args": ["--input", "{inputJson}", "--output", "{outputJson}"],
+    "notes": "读取图片集合并输出审核结论。"
+  },
+  "parameters": [
+    {
+      "key": "blockedNames",
+      "name": "风险文件名片段",
+      "description": "文件名包含这些片段时进入人工复审。",
+      "parameterType": "stringList",
+      "defaultValue": ["risk", "blocked"],
+      "required": false,
+      "options": []
+    }
+  ],
+  "dataOutputs": []
+}
+

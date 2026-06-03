@@ -1,0 +1,29 @@
+{
+  "runId": "local_run",
+  "stepId": "folder_processor_1",
+  "moduleId": "{{MODULE_ID}}",
+  "moduleKind": "folder_processor",
+  "moduleName": "{{MODULE_NAME}}",
+  "workDir": "./debug",
+  "taskName": "本地调试",
+  "artifactDir": "./debug",
+  "stepArtifactDir": "./debug/artifacts",
+  "resourceRoot": "./debug/resources",
+  "progressPath": "./debug/progress.jsonl",
+  "cancelPath": "./debug/cancel.flag",
+  "inputs": {
+    "folder": {
+      "dataType": "folder",
+      "path": ".",
+      "name": "当前模块目录",
+      "relativePath": ""
+    }
+  },
+  "files": [],
+  "params": {
+    "maxFiles": 20
+  },
+  "modelPath": "",
+  "previous": {}
+}
+

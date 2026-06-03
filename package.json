@@ -9,6 +9,7 @@
     "web:build": "vite build",
     "preview": "vite preview --host 127.0.0.1 --port 1420",
     "build": "tauri build --no-bundle",
+    "runtime:setup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-runtime.ps1",
     "portable": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-portable.ps1",
     "tauri": "tauri"
   },
@@ -25,7 +26,12 @@
     "@tauri-apps/plugin-dialog": "^2.7.1",
     "@xyflow/react": "^12.10.2",
     "lucide-react": "^1.17.0",
+    "mermaid": "^11.15.0",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "react-markdown": "^10.1.0",
+    "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.1"
   }
 }

@@ -1,0 +1,28 @@
+{
+  "id": "{{MODULE_ID}}",
+  "name": "{{MODULE_NAME}}",
+  "kind": "text_safety",
+  "summary": "读取文本集合，并标记包含风险词的内容。",
+  "modelLabel": "无需模型",
+  "icon": "file-text",
+  "modelConfigured": true,
+  "launch": {
+    "launchType": "python",
+    "command": "main.py",
+    "args": ["--input", "{inputJson}", "--output", "{outputJson}"],
+    "notes": "读取文本集合并输出审核结论。"
+  },
+  "parameters": [
+    {
+      "key": "riskWords",
+      "name": "风险词",
+      "description": "按行填写需要命中的词。",
+      "parameterType": "stringList",
+      "defaultValue": ["广告", "联系方式"],
+      "required": false,
+      "options": []
+    }
+  ],
+  "dataOutputs": []
+}
+

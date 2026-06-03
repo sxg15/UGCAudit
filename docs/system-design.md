@@ -233,11 +233,15 @@ flowchart TB
    - 没有依赖的步骤先运行。
    - 依赖完成后，下游步骤自动进入等待队列。
    - 同一批可执行步骤可以并行。
+   - 数据线如果来自真实模块输出，也会自动变成等待关系，不要求用户额外把模块顺序线直接连到数据节点。
+   - 第一版并发上限固定为 2，避免默认流程同时占用过多本机资源。
 
 4. 执行模块。
    - 给模块传入统一 JSON。
    - 模块输出统一 JSON。
    - 大文件通过文件路径或 Artifact ID 传递，不直接塞进 JSON。
+   - 模块通过进度文件追加 JSON 行，客户端实时读取并推给前端。
+   - 用户中断时客户端先创建中断标记文件，3 秒内模块未退出则强制停止进程。
 
 5. 汇总结果。
    - 每个步骤输出结构化结果。
@@ -560,6 +564,81 @@ modules/
 
 ## 数据传递
 
+当前流程已经拆成两类连线：
+
+- 顺序连线：只决定步骤什么时候运行。一个步骤有多个顺序输入时，必须等这些上游步骤都完成后才运行。
+- 数据连线：只决定传什么数据。数据口只能连接同类型数据口，图片集合不能接到文本输入，顺序口也不能接数据口。
+
+当前内置图片集合、文本集合和文件夹三类数据：
+
+```json
+{
+  "dataType": "imageCollection",
+  "items": [
+    {
+      "path": "D:/project/images/a.png",
+      "name": "a.png",
+      "extension": "png",
+      "relativePath": "images/a.png",
+      "sourceAssetId": "asset_1",
+      "sourceAssetName": "project"
+    }
+  ]
+}
+```
+
+```json
+{
+  "dataType": "textCollection",
+  "items": [
+    {
+      "sourceType": "file",
+      "path": "D:/project/texts/a.txt",
+      "name": "a.txt",
+      "relativePath": "texts/a.txt",
+      "text": "待检测文本"
+    }
+  ]
+}
+```
+
+```json
+{
+  "dataType": "folder",
+  "path": "D:/project/Assets",
+  "name": "Assets",
+  "relativePath": "Assets"
+}
+```
+
+内置数据节点：
+
+- 待测项目中所有图片
+- 待测项目中所有文本
+- 产物文件夹中所有图片
+- 产物文件夹中所有文本
+- 待测项目相对路径下所有图片
+- 待测项目相对路径下所有文本
+- 待审核文件夹
+- 待审核文件夹下相对路径文件夹
+- 产物文件夹
+- 待产物文件夹下相对路径文件夹
+- 将两个图片集合合并
+- 将两个文本集合合并
+
+文件夹数据节点输出单个文件夹，不输出集合。相对路径文件夹节点会把 `relativePath` 解析成一个真实存在的文件夹。
+
+数据节点在组件库中按“待测项目”“产物文件夹”“数据处理”分组展示。产物文件夹节点会在模块运行前读取本次审核产物目录里的现有文件，因此可以读取前序模块已经写出的结果。
+
+三个预置模块的数据口：
+
+- 图片文字识别：输入图片集合，输出文本集合。
+- 文本合规检测：输入文本集合。
+- 图片合规检测：输入图片集合。
+- 文件夹处理模块：输入文件夹。
+
+执行模块时，客户端会把数据口结果放在 `inputs` 中。同时为了兼容旧模块脚本，仍然会生成旧字段 `files` 和 `previous`，但内容只来自当前节点实际连上的数据。
+
 模块之间通过结构化输出传递数据。
 
 示例：
@@ -623,6 +702,31 @@ modules/
 - 原始模型输出：steps/text_safety/output.json
 ```
 
+报告页会按富文本预览这份 Markdown。模块的 `reportSection` 仍然返回字符串，不需要改成结构化对象。当前预览支持：
+
+- 普通 Markdown：标题、段落、表格、列表、任务列表、链接、图片、代码块。
+- 安全 HTML：可以用于折叠说明、简单布局、表格等展示内容；脚本、内嵌页面、表单和事件属性不会生效。
+- Mermaid 图示：在 `mermaid` 代码块里写流程图、饼图等图示。
+
+示例：
+
+````markdown
+### 审核结果分布
+
+```mermaid
+pie showData
+  title 审核结果
+  "通过": 12
+  "复审": 3
+  "不通过": 1
+```
+
+<details>
+  <summary>查看补充说明</summary>
+  <p>这里可以放安全的 HTML 内容。</p>
+</details>
+````
+
 最终结论合并规则：
 
 - 任一步 `reject` -> 总结论 `reject`
@@ -664,6 +768,20 @@ Runtime 对外提供两种模式：
 
 首版可以先 CLI，等流程跑通后再改成长驻服务。
 
+## 审核方案和流水线入口
+
+客户端支持把流程保存成 `.ugcaudit` 审核方案文件。方案只保存流程节点、连线和模块参数，不保存待审文件夹。
+
+新建方案默认保存到程序根目录下的 `Schemes` 文件夹。前端顶部提供方案列表，直接枚举这个文件夹里的 `.ugcaudit` 文件，用户可以从列表快速切换；“加载”按钮仍保留，用于打开其他位置的方案文件。
+
+同一个 `ugc-audit.exe` 带 `run` 参数时进入无窗口 CLI 模式：
+
+```powershell
+ugc-audit.exe run --scheme "D:\AuditSchemes\image.ugcaudit" --input "D:\UGCProject" --task-name "每日图片审核" --output "D:\AuditRuns\run-001"
+```
+
+CLI 退出码用于流水线判断：`0` 表示通过，`2` 表示需要复审或不通过，`1` 表示运行失败。`--output` 表示本次产物目录；不传时使用客户端默认产物路径并自动创建 `任务名称-任务ID` 文件夹。产物目录内会写出 `run.json`、`report.md` 和 `cli-result.json`。
+
 ## 前端页面
 
 建议首版包含这些页面：
@@ -699,8 +817,26 @@ Runtime 对外提供两种模式：
 - `step_progress`
 - `step_completed`
 - `step_failed`
+- `step_cancelled`
 - `report_updated`
 - `run_completed`
+- `run_failed`
+- `run_cancelled`
+
+运行界面使用运行开始时的流程快照，只展示状态，不允许拖拽、连线、删除或修改参数。节点显示进度条和状态文案；正在传递或等待的连线显示从来源到目标移动的小圆点。
+
+模块进度协议：
+
+```json
+{
+  "progress": 0.5,
+  "message": "已处理 3/6",
+  "processed": 3,
+  "total": 6
+}
+```
+
+客户端会把进度文件路径同时写入输入 JSON 的 `progressPath` 和环境变量 `UGCAUDIT_PROGRESS_FILE`。中断标记路径同时写入 `cancelPath` 和 `UGCAUDIT_CANCEL_FILE`。模块应在循环中检查中断标记，收到后写出 `status: "cancelled"` 的结果并退出；旧模块不支持该协议时仍可运行，客户端会用兜底状态显示并在必要时停止进程。
 
 ## 缓存和复跑
 

@@ -1,0 +1,34 @@
+{
+  "id": "{{MODULE_ID}}",
+  "name": "{{MODULE_NAME}}",
+  "kind": "folder_processor",
+  "summary": "读取文件夹并输出文件清单文本集合。",
+  "modelLabel": "无需模型",
+  "icon": "folder-open",
+  "modelConfigured": true,
+  "launch": {
+    "launchType": "python",
+    "command": "main.py",
+    "args": ["--input", "{inputJson}", "--output", "{outputJson}"],
+    "notes": "读取文件夹路径，生成文件清单。"
+  },
+  "parameters": [
+    {
+      "key": "maxFiles",
+      "name": "最多扫描文件数",
+      "description": "避免本地调试时扫描过多文件。",
+      "parameterType": "number",
+      "defaultValue": 100,
+      "required": true,
+      "options": []
+    }
+  ],
+  "dataOutputs": [
+    {
+      "handle": "texts",
+      "name": "文件清单",
+      "dataType": "textCollection"
+    }
+  ]
+}
+

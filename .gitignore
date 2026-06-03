@@ -11,6 +11,9 @@ node_modules
 dist
 dist-ssr
 dist-portable
+Publish/
+Runtime/Packages/
+Runtime/Python312/
 src-tauri/target
 *.local
 

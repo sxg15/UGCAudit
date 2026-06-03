@@ -1,0 +1,32 @@
+{
+  "runId": "local_run",
+  "stepId": "image_ocr_1",
+  "moduleId": "{{MODULE_ID}}",
+  "moduleKind": "image_ocr",
+  "moduleName": "{{MODULE_NAME}}",
+  "workDir": "./debug",
+  "taskName": "本地调试",
+  "artifactDir": "./debug",
+  "stepArtifactDir": "./debug/artifacts",
+  "resourceRoot": "./debug/resources",
+  "inputs": {
+    "images": {
+      "dataType": "imageCollection",
+      "items": [
+        {
+          "path": "demo.png",
+          "name": "demo.png",
+          "extension": "png",
+          "sourceAssetId": "asset_1",
+          "sourceAssetName": "待测项目",
+          "relativePath": "demo.png"
+        }
+      ]
+    }
+  },
+  "files": [],
+  "params": {},
+  "modelPath": "",
+  "previous": {}
+}
+

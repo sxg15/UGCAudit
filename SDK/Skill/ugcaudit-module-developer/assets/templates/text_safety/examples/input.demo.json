@@ -1,0 +1,33 @@
+{
+  "runId": "local_run",
+  "stepId": "text_safety_1",
+  "moduleId": "{{MODULE_ID}}",
+  "moduleKind": "text_safety",
+  "moduleName": "{{MODULE_NAME}}",
+  "workDir": "./debug",
+  "taskName": "本地调试",
+  "artifactDir": "./debug",
+  "stepArtifactDir": "./debug/artifacts",
+  "resourceRoot": "./debug/resources",
+  "inputs": {
+    "texts": {
+      "dataType": "textCollection",
+      "items": [
+        {
+          "sourceType": "file",
+          "path": "demo.txt",
+          "name": "demo.txt",
+          "relativePath": "demo.txt",
+          "text": "这里包含广告内容"
+        }
+      ]
+    }
+  },
+  "files": [],
+  "params": {
+    "riskWords": ["广告"]
+  },
+  "modelPath": "",
+  "previous": {}
+}
+

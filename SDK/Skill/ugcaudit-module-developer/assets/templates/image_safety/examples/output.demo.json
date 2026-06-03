@@ -1,0 +1,18 @@
+{
+  "status": "completed",
+  "verdict": "review",
+  "message": "命中 1 张图片。",
+  "processedFiles": 1,
+  "matchedFiles": 1,
+  "artifactCount": 0,
+  "matches": [
+    {
+      "name": "demo-risk.png",
+      "path": "demo-risk.png",
+      "relativePath": "demo-risk.png",
+      "hitRules": ["risk"]
+    }
+  ],
+  "reportSection": "### {{MODULE_NAME}}\n\n- 处理图片：1\n- 命中图片：1\n- 结论：需要人工复审\n- `demo-risk.png` 命中：risk"
+}
+

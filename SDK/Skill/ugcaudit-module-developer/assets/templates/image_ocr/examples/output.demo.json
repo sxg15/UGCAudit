@@ -1,0 +1,18 @@
+{
+  "status": "completed",
+  "verdict": "pass",
+  "message": "识别 1 张图片。",
+  "processedFiles": 1,
+  "matchedFiles": 0,
+  "artifactCount": 0,
+  "results": [
+    {
+      "path": "demo.png",
+      "name": "demo.png",
+      "relativePath": "demo.png",
+      "fullText": "这里是 demo.png 的示例 OCR 文本"
+    }
+  ],
+  "reportSection": "### {{MODULE_NAME}}\n\n已识别 1 张图片。"
+}
+

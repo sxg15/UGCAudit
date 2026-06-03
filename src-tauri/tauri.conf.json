@@ -7,13 +7,14 @@
     "beforeDevCommand": "npm run web:dev",
     "beforeBuildCommand": "npm run web:build",
     "devUrl": "http://127.0.0.1:1420",
-    "frontendDist": "../dist"
+    "frontendDist": "../Publish/UGCAudit/web-dist"
   },
   "app": {
     "withGlobalTauri": true,
     "windows": [
       {
         "title": "UGCAudit",
+        "create": false,
         "width": 1280,
         "height": 820
       }

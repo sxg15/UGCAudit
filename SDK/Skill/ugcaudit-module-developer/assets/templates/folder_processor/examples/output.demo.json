@@ -1,0 +1,24 @@
+{
+  "status": "completed",
+  "verdict": "pass",
+  "message": "扫描 1 个文件。",
+  "processedFiles": 1,
+  "matchedFiles": 0,
+  "artifactCount": 1,
+  "outputs": {
+    "texts": {
+      "dataType": "textCollection",
+      "items": [
+        {
+          "sourceType": "file",
+          "path": "./debug/artifacts/file_list.txt",
+          "name": "file_list.txt",
+          "relativePath": "file_list.txt",
+          "text": "module.json"
+        }
+      ]
+    }
+  },
+  "reportSection": "### {{MODULE_NAME}}\n\n已扫描 1 个文件。"
+}
+

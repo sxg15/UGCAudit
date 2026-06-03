@@ -22,6 +22,8 @@ export type ModuleInfo = {
   summary: string;
   modelLabel: string;
   icon: string;
+  iconPath?: string | null;
+  iconDataUrl?: string | null;
   builtIn: boolean;
   source: "system" | "preset" | "custom";
   definitionDir: string;
@@ -29,6 +31,13 @@ export type ModuleInfo = {
   modelConfigured: boolean;
   launch: ModuleLaunch;
   parameters: ModuleParameter[];
+  dataOutputs?: ModuleDataOutput[];
+};
+
+export type ModuleDataOutput = {
+  handle: string;
+  name: string;
+  dataType: "imageCollection" | "textCollection" | "folder";
 };
 
 export type ModuleParameterOption = {
@@ -40,7 +49,7 @@ export type ModuleParameter = {
   key: string;
   name: string;
   description: string;
-  parameterType: "string" | "number" | "boolean" | "select" | "multiSelect" | "path" | "textarea";
+  parameterType: "string" | "number" | "boolean" | "select" | "multiSelect" | "stringList" | "policyList" | "path" | "textarea";
   defaultValue: JsonValue;
   required: boolean;
   options: ModuleParameterOption[];
@@ -61,6 +70,9 @@ export type FlowEdgeDefinition = {
   id: string;
   from: string;
   to: string;
+  edgeType?: "sequence" | "data";
+  fromHandle?: string | null;
+  toHandle?: string | null;
 };
 
 export type FlowDefinition = {
@@ -69,6 +81,26 @@ export type FlowDefinition = {
   version: number;
   nodes: FlowNodeDefinition[];
   edges: FlowEdgeDefinition[];
+};
+
+export type AuditScheme = {
+  schemaVersion: number;
+  kind: "ugcAuditScheme";
+  id: string;
+  name: string;
+  flow: FlowDefinition;
+};
+
+export type SchemeListItem = {
+  id: string;
+  name: string;
+  path: string;
+  modifiedAt?: number | null;
+};
+
+export type SavedAuditScheme = {
+  path: string;
+  scheme: AuditScheme;
 };
 
 export type ValidationResult = {
@@ -93,7 +125,49 @@ export type StepRun = {
   verdict: string;
   message: string;
   executionGroup: number;
+  progress?: number;
+  processedFiles?: number;
+  matchedFiles?: number;
+  artifactCount?: number;
+  performance?: StepPerformance | null;
   reportSection: string;
+};
+
+export type StepPerformance = {
+  startTime: number;
+  endTime: number;
+  durationMs: number;
+  sampleCount: number;
+  cpuTimeMs: number;
+  cpuSharePercent: number;
+  averageCpuPercent: number;
+  peakCpuPercent: number;
+  peakMemoryBytes: number;
+  artifactBytes: number;
+  gpuAvailable: boolean;
+  gpuSampleCount: number;
+  peakGpuMemoryBytes?: number | null;
+  samplingNote: string;
+};
+
+export type PerformanceLeader = {
+  stepId: string;
+  label: string;
+  moduleName: string;
+  value: number;
+};
+
+export type RunPerformanceSummary = {
+  totalDurationMs: number;
+  totalCpuTimeMs: number;
+  totalArtifactBytes: number;
+  measuredSteps: number;
+  gpuAvailable: boolean;
+  gpuSampled: boolean;
+  cpuLeader?: PerformanceLeader | null;
+  durationLeader?: PerformanceLeader | null;
+  memoryLeader?: PerformanceLeader | null;
+  samplingNote: string;
 };
 
 export type RunRecord = {
@@ -103,12 +177,16 @@ export type RunRecord = {
   createdAt: number;
   status: string;
   verdict: string;
+  taskName?: string;
   inputNote: string;
   assets: AuditAsset[];
   dataRoot: string;
   runDir: string;
   resourceRoot: string;
+  artifactRoot?: string;
+  artifactDir?: string;
   reportPath: string;
+  performanceSummary?: RunPerformanceSummary | null;
   steps: StepRun[];
 };
 
@@ -119,4 +197,52 @@ export type RunSummary = {
   status: string;
   verdict: string;
   reportPath: string;
+};
+
+export type RunStartResponse = {
+  runId: string;
+};
+
+export type RunProgressEvent = {
+  runId: string;
+  nodeId?: string | null;
+  status: string;
+  progress?: number | null;
+  message: string;
+  processed?: number | null;
+  total?: number | null;
+  step?: StepRun | null;
+  run?: RunRecord | null;
+};
+
+export type RuntimeDependencyStatus = {
+  id: "torch" | "transformers" | "pillow" | "accelerate";
+  name: string;
+  installed: boolean;
+  version?: string | null;
+  folder: string;
+  sitePackages: string;
+};
+
+export type RuntimeStatus = {
+  runtimeRoot: string;
+  runtimeSource: "program" | "data" | "override" | string;
+  dependencyRoot: string;
+  pythonDir: string;
+  pythonPath: string;
+  pythonInstalled: boolean;
+  pythonVersion?: string | null;
+  dependencies: RuntimeDependencyStatus[];
+};
+
+export type RuntimeLogLine = {
+  timestamp: number;
+  scope: string;
+  stream: "stdout" | "stderr" | "info" | "error" | string;
+  line: string;
+};
+
+export type AppSettings = {
+  artifactRoot: string;
+  dependencyRoot: string;
 };

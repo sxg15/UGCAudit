@@ -1,0 +1,34 @@
+{
+  "runId": "local_run",
+  "stepId": "image_safety_1",
+  "moduleId": "{{MODULE_ID}}",
+  "moduleKind": "image_safety",
+  "moduleName": "{{MODULE_NAME}}",
+  "workDir": "./debug",
+  "taskName": "本地调试",
+  "artifactDir": "./debug",
+  "stepArtifactDir": "./debug/artifacts",
+  "resourceRoot": "./debug/resources",
+  "inputs": {
+    "images": {
+      "dataType": "imageCollection",
+      "items": [
+        {
+          "path": "demo-risk.png",
+          "name": "demo-risk.png",
+          "extension": "png",
+          "sourceAssetId": "asset_1",
+          "sourceAssetName": "待测项目",
+          "relativePath": "demo-risk.png"
+        }
+      ]
+    }
+  },
+  "files": [],
+  "params": {
+    "blockedNames": ["risk"]
+  },
+  "modelPath": "",
+  "previous": {}
+}
+

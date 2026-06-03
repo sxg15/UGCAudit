@@ -1,0 +1,18 @@
+{
+  "status": "completed",
+  "verdict": "review",
+  "message": "命中 1 条文本。",
+  "processedFiles": 1,
+  "matchedFiles": 1,
+  "artifactCount": 0,
+  "matches": [
+    {
+      "name": "demo.txt",
+      "path": "demo.txt",
+      "relativePath": "demo.txt",
+      "hitWords": ["广告"]
+    }
+  ],
+  "reportSection": "### {{MODULE_NAME}}\n\n- 处理文本：1\n- 命中文本：1\n- 结论：需要人工复审\n- `demo.txt` 命中：广告"
+}
+
